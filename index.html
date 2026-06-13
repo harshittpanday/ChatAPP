@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatAPP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- SIGNUP -->
+    <div class="card" id="signupCard">
+
+        <h1>💬 ChatAPP</h1>
+
+        <input id="signupEmail" type="email" placeholder="Email">
+        <input id="signupPassword" type="password" placeholder="Password">
+        <input id="signupUsername" type="text" placeholder="Username">
+        <input id="signupDisplayName" type="text" placeholder="Display Name">
+
+        <button id="signupBtn">Create Account</button>
+
+        <p class="switch">
+            Already have an account?
+            <span id="showLogin">Login</span>
+        </p>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="card hidden" id="loginCard">
+
+        <h1>Login</h1>
+
+        <input id="loginEmail" type="email" placeholder="Email">
+        <input id="loginPassword" type="password" placeholder="Password">
+
+        <button id="loginBtn">Login</button>
+
+        <p class="switch">
+            No account?
+            <span id="showSignup">Signup</span>
+        </p>
+    </div>
+
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<script src="firebase.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
