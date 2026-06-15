@@ -67,8 +67,16 @@ document.getElementById("loginBtn").onclick = async () => {
 };
 
 // AUTH STATE
-auth.onAuthStateChanged(user => {
-    if (user) loadHomePage(user.uid);
+auth.onAuthStateChanged(async user => {
+
+    if (user) {
+
+        await db.ref("users/" + user.uid).update({
+            online: true
+        });
+
+        loadHome(user.uid);
+    }
 });
 
 // LOGOUT

@@ -178,20 +178,54 @@ async function openChat(chatId, otherUid) {
     const u = snap.val();
 
     document.querySelector(".chat-area").innerHTML = `
-        <div class="chat-window">
+        <div class="chat-container">
 
-            <h2>${u.displayName}</h2>
-            <p>@${u.username}</p>
+           <div class="chat-header">
+             <h2>${u.displayName}</h2>
 
-            <div id="messages"></div>
+              <p id="statusText">
+             ${u.online ? "🟢 Online" : "⚫ Offline"}
+               </p> 
+             </div>
 
-            <input id="msgInput">
-            <button onclick="sendMessage('${chatId}')">Send</button>
+            <div id="messages" class="chat-box"></div>
+
+            <div class="chat-input">
+                <input
+                    id="msgInput"
+                    placeholder="Type a message..."
+                >
+
+                <button onclick="sendMessage('${chatId}')">
+                    Send
+                </button>
+            </div>
 
         </div>
     `;
 
     loadMessages(chatId);
+
+    setTimeout(() => {
+        document.getElementById("msgInput")?.focus();
+    }, 100);
+
+ db.ref("users/" + otherUid)
+.on("value", snap => {
+
+    const user = snap.val();
+
+    const status =
+        document.getElementById("statusText");
+
+    if (!status) return;
+
+    status.textContent =
+        user.online
+        ? "🟢 Online"
+        : "⚫ Offline";
+});
+
 }
 
 
@@ -211,16 +245,18 @@ function loadMessages(chatId) {
             const el = document.createElement("div");
 
             el.style.textAlign = isMe ? "right" : "left";
-
+         
             el.innerHTML = `
                 <div style="
-                    display:inline-block;
-                    padding:10px;
-                    margin:4px;
-                    border-radius:12px;
-                    background:${isMe ? "#10b981" : "#1f2937"};
-                    color:${isMe ? "black" : "white"};
-                ">
+             display:inline-block;
+             padding:10px 14px;
+             margin:1px 0;
+              border-radius:16px;
+                background:${isMe ? "#10b981" : "#1f2937"};
+              color:${isMe ? "black" : "white"};
+               max-width:70%;
+               word-wrap:break-word;
+             ">
                     ${m.text}
                 </div>
             `;
@@ -256,7 +292,7 @@ async function loadChatList(uid) {
 
     const div = document.getElementById("chatList");
 
-    db.ref("chats").on("value", async snap => {
+    db.ref("chats").on("value", async (snap) => {
 
         const chats = snap.val() || {};
         let html = "";
@@ -264,19 +300,64 @@ async function loadChatList(uid) {
         for (const id in chats) {
 
             const c = chats[id];
-            if (!c.participants?.[uid]) continue;
 
-            const other = Object.keys(c.participants).find(x => x !== uid);
+            // Skip chats user isn't part of
+            if (!c.participants || !c.participants[uid]) continue;
 
-            const snap2 = await db.ref("users/" + other).once("value");
-            const u = snap2.val();
+            const other = Object.keys(c.participants).find(
+                x => x !== uid
+            );
 
-            html += `
-                <div class="user-result" onclick="startChat('${other}')">
+            if (!other) continue;
+
+            try {
+
+                const userSnap = await db.ref("users/" + other).once("value");
+                const u = userSnap.val();
+
+                if (!u) continue;
+
+                let lastMessage = "No messages yet";
+
+                if (c.messages) {
+
+                    const msgs = Object.values(c.messages);
+
+                    if (msgs.length > 0) {
+                        const latest = msgs[msgs.length - 1];
+
+                        if (latest && latest.text) {
+                            lastMessage = latest.text;
+                        }
+                    }
+                }
+
+                html += `
+                <div class="user-result"
+                     onclick="startChat('${other}')">
+
                     <strong>${u.displayName}</strong>
-                    <p>@${u.username}</p>
+
+                    <p style="
+                        color:#9ca3af;
+                        white-space:nowrap;
+                        overflow:hidden;
+                        text-overflow:ellipsis;
+                    ">
+                        ${lastMessage}
+                    </p>
+
                 </div>
-            `;
+                `;
+
+            } catch (err) {
+
+                console.error(
+                    "Chat list error:",
+                    err
+                );
+
+            }
         }
 
         div.innerHTML = html;
@@ -308,3 +389,81 @@ window.uploadPfp = async function() {
 // ---------------- LOGOUT ----------------
 
 window.logout = () => auth.signOut();
+
+document.addEventListener("keydown", (e) => {
+
+    const input = document.getElementById("msgInput");
+
+    if (
+        e.key === "Enter" &&
+        input &&
+        document.activeElement === input
+    ) {
+        document.querySelector(".chat-input button")?.click();
+    }
+});
+// ---------------- PROFILE ----------------
+
+window.openProfile = async function(uid) {
+
+    const snap = await db.ref("users/" + uid).once("value");
+    const user = snap.val();
+
+    document.querySelector(".chat-area").innerHTML = `
+        <div class="profile-page">
+
+            <h2>Profile</h2>
+
+            <div class="profile">
+
+                <div class="avatar">
+                    ${
+                        user.pfpURL
+                        ? `<img src="${user.pfpURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
+                        : user.displayName.charAt(0).toUpperCase()
+                    }
+                </div>
+
+                <div>
+                    <h3>${user.displayName}</h3>
+                    <p>@${user.username}</p>
+                </div>
+
+            </div>
+
+            <input
+                type="text"
+                id="bioInput"
+                placeholder="Bio"
+                value="${user.bio || ""}"
+            >
+
+            <button onclick="saveProfile()">
+                Save Bio
+            </button>
+
+        </div>
+    `;
+};
+window.saveProfile = async function() {
+
+    const uid = auth.currentUser.uid;
+
+    await db.ref("users/" + uid).update({
+        bio: document.getElementById("bioInput").value
+    });
+
+    alert("Profile saved!");
+};
+// ---------------- Online/Offline ----------------
+window.addEventListener("beforeunload", () => {
+
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    db.ref("users/" + user.uid).update({
+        online: false
+    });
+
+});
