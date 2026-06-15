@@ -19,11 +19,11 @@ https://cha1app.netlify.app/
 * 🔐 Email/password authentication
 * 👤 Unique username system
 * 🧑 Profile with display name + bio
-* 🖼️ Profile picture upload (Firebase Storage)
 * 💬 Real-time one-to-one chat
 * 🔎 User search system
 * 📱 Responsive modern UI
 * ⚡ Instant message updates
+* 🟢 Online status
 
 ---
 
@@ -97,8 +97,8 @@ Recommended:
 * Read receipts
 * Typing indicator
 * Group chats
-* Online status
 * Message reactions
+* Profile picture upload 
 
 
 ---
