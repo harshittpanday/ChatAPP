@@ -204,9 +204,24 @@ button:hover{
 
 .chat-area{
     flex:1;
-    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
     background:#0b0f14;
-    overflow:hidden;
+}
+.empty-chat{
+    padding:25px;
+}
+
+.empty-chat h2{
+    font-size:32px;
+    font-weight:700;
+
+    color:rgba(255,255,255,0.15);
+
+    letter-spacing:1px;
+
+    user-select:none;
 }
 .chat-window{
     width:100%;
