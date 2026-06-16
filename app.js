@@ -200,11 +200,31 @@ async function openChat(chatId, otherUid) {
 
                <button onclick="goBack()">←</button>
 
-                <div>
-                 <h2>${u.displayName}</h2>
-                  <p>@${u.username}</p>
-                <small id="statusText">⚫ Offline</small>
-                 </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+
+    ${
+        u.pfpURL
+        ? `<img
+            src="${u.pfpURL}"
+            style="
+                width:42px;
+                height:42px;
+                border-radius:50%;
+                object-fit:cover;
+            "
+        >`
+        : `<div class="avatar">
+            ${u.displayName.charAt(0).toUpperCase()}
+        </div>`
+    }
+
+    <div>
+        <h2>${u.displayName}</h2>
+        <p>@${u.username}</p>
+        <small id="statusText">⚫ Offline</small>
+    </div>
+
+</div>
 
                    </div>
 
@@ -479,50 +499,69 @@ db.ref("chats").on("value", async (snap) => {
             const unread =
                 c.unread?.[uid] || 0;
 
-            html += `
-            <div class="user-result"
-                 onclick="startChat('${other}')">
+          html += `
+<div class="user-result"
+     onclick="startChat('${other}')">
 
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                ">
+    <div style="
+        display:flex;
+        align-items:center;
+        gap:12px;
+    ">
 
-                    <strong>
-                        ${u.displayName}
-                    </strong>
+        ${
+            u.pfpURL
+            ? `
+            <img
+                src="${u.pfpURL}"
+                style="
+                    width:48px;
+                    height:48px;
+                    border-radius:50%;
+                    object-fit:cover;
+                "
+            >
+            `
+            : `
+            <div class="avatar">
+                ${u.displayName.charAt(0).toUpperCase()}
+            </div>
+            `
+        }
 
-                    ${unread > 0 ? `
-                    <span style="
-                        background:#10b981;
-                        color:black;
-                        min-width:20px;
-                        height:20px;
-                        border-radius:999px;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:12px;
-                        font-weight:bold;
-                    ">
-                        ${unread}
-                    </span>
-                    ` : ""}
+        <div style="flex:1">
 
-                </div>
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+            ">
 
-                <p style="
-                    color:#9ca3af;
-                    white-space:nowrap;
-                    overflow:hidden;
-                    text-overflow:ellipsis;
-                ">
-                    ${lastMessage}
-                </p>
+                <strong>${u.displayName}</strong>
+
+                ${
+                    unread > 0
+                    ? `<span class="badge">${unread}</span>`
+                    : ""
+                }
 
             </div>
-            `;
+
+            <p style="
+                color:#9ca3af;
+                overflow:hidden;
+                white-space:nowrap;
+                text-overflow:ellipsis;
+            ">
+                ${lastMessage}
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+`;
 
         } catch (err) {
 
@@ -544,22 +583,35 @@ db.ref("chats").on("value", async (snap) => {
 
 // ---------------- PROFILE PFP ----------------
 
-window.uploadPfp = async function() {
+window.uploadPfp = async function () {
 
     const file = document.getElementById("pfpInput").files[0];
-    const uid = auth.currentUser.uid;
 
-    const ref = storage.ref("pfps/" + uid);
+    if (!file) {
+        alert("Select an image first");
+        return;
+    }
 
-    await ref.put(file);
+    const formData = new FormData();
 
-    const url = await ref.getDownloadURL();
+    formData.append("file", file);
+    formData.append("upload_preset", "chatapp_pfp");
 
-    await db.ref("users/" + uid).update({
-        pfpURL: url
+    const res = await fetch(
+        "https://api.cloudinary.com/v1_1/djzswz73a/image/upload",
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    const data = await res.json();
+
+    await db.ref("users/" + auth.currentUser.uid).update({
+        pfpURL: data.secure_url
     });
 
-    alert("Updated");
+    alert("Profile picture updated!");
 };
 
 // ----------------- GOBACK -------------------
@@ -601,40 +653,50 @@ window.openProfile = async function(uid) {
     const user = snap.val();
 
     document.querySelector(".chat-area").innerHTML = `
-        <div class="profile-page">
+    <div class="profile-page">
 
-            <h2>Profile</h2>
+        <h2>Profile</h2>
 
-            <div class="profile">
+        <div class="profile">
 
-                <div class="avatar">
-                    ${
-                        user.pfpURL
-                        ? `<img src="${user.pfpURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
-                        : user.displayName.charAt(0).toUpperCase()
-                    }
-                </div>
-
-                <div>
-                    <h3>${user.displayName}</h3>
-                    <p>@${user.username}</p>
-                </div>
-
+            <div class="avatar">
+                ${
+                    user.pfpURL
+                    ? `<img src="${user.pfpURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
+                    : user.displayName.charAt(0).toUpperCase()
+                }
             </div>
 
-            <input
-                type="text"
-                id="bioInput"
-                placeholder="Bio"
-                value="${user.bio || ""}"
-            >
-
-            <button onclick="saveProfile()">
-                Save Bio
-            </button>
+            <div>
+                <h3>${user.displayName}</h3>
+                <p>@${user.username}</p>
+            </div>
 
         </div>
-    `;
+
+        <input
+            type="file"
+            id="pfpInput"
+            accept="image/*"
+        >
+
+        <button onclick="uploadPfp()">
+            Upload Profile Picture
+        </button>
+
+        <input
+            type="text"
+            id="bioInput"
+            placeholder="Bio"
+            value="${user.bio || ""}"
+        >
+
+        <button onclick="saveProfile()">
+            Save Bio
+        </button>
+
+    </div>
+`;
 };
 window.saveProfile = async function() {
 
