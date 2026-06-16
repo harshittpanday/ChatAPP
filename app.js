@@ -231,15 +231,28 @@ async function openChat(chatId, otherUid) {
             <div id="messages" class="chat-box"></div>
 
             <div class="chat-input">
-                <input
-                    id="msgInput"
-                    placeholder="Type a message..."
-                >
 
-                <button onclick="sendMessage('${chatId}')">
-                    Send
-                </button>
-            </div>
+    <input
+        type="file"
+        id="imageInput"
+        accept="image/*"
+        hidden
+    >
+
+    <button onclick="document.getElementById('imageInput').click()">
+        📷
+    </button>
+
+    <input
+        id="msgInput"
+        placeholder="Type a message..."
+    >
+
+    <button onclick="sendMessage('${chatId}')">
+        Send
+    </button>
+
+</div>
 
         </div>
     `;
@@ -284,18 +297,9 @@ document.querySelector(".chat-area").style.display = "flex";
 
 const input = document.getElementById("msgInput");
 
-let typingTimeout;
-
-input.addEventListener("input", async () => {
-    const me = auth.currentUser.uid;
-
-    await db.ref(`chats/${chatId}/typing/${me}`).set(true);
-
-    clearTimeout(typingTimeout);
-
-    typingTimeout = setTimeout(() => {
-        db.ref(`chats/${chatId}/typing/${me}`).set(false);
-    }, 1500);
+document.getElementById("imageInput")
+.addEventListener("change", () => {
+    sendImage(chatId);
 });
 
 const typingRef = db.ref(`chats/${chatId}/typing`);
@@ -385,7 +389,20 @@ function loadMessages(chatId) {
                max-width:70%;
                word-wrap:break-word;
              ">
-                    ${m.text}
+                    ${
+                    m.type === "image"
+                     ? `
+                     <img
+                     src="${m.imageURL}"
+                      style="
+                         max-width:250px;
+                         border-radius:12px;
+                         display:block;
+                           "
+                         >
+                          `
+                   : m.text
+                 }
                 </div>
 
               
@@ -438,6 +455,40 @@ input.value = "";
 
 };
 
+window.sendImage = async function(chatId) {
+
+    const file =
+        document.getElementById("imageInput")
+        .files[0];
+
+    if (!file) return;
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append("upload_preset", "chatapp_pfp");
+
+    const res = await fetch(
+        "https://api.cloudinary.com/v1_1/djzswz73a/image/upload",
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    const data = await res.json();
+
+    await db.ref("chats/" + chatId + "/messages").push({
+        sender: auth.currentUser.uid,
+        type: "image",
+        imageURL: data.secure_url,
+        time: Date.now()
+    });
+
+    document.getElementById("imageInput").value = "";
+};
+
+
 // ---------------- CHAT LIST ----------------
 
 async function loadChatList(uid) {
@@ -484,15 +535,19 @@ db.ref("chats").on("value", async (snap) => {
 
                 if (msgs.length > 0) {
 
-                    const latest =
-                        msgs[msgs.length - 1];
+                 const latest = msgs[msgs.length - 1];
 
-                    if (latest?.text) {
-                        lastMessage =
-                            latest.text;
+                  if (latest.type === "image") {
+      
+                  lastMessage = "📷 Image";
+
+                  } else if (latest.text) {
+ 
+                   lastMessage = latest.text;
+
                     }
 
-                }
+               }
 
             }
 
