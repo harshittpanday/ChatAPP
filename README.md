@@ -24,7 +24,7 @@ https://cha1app.netlify.app/
 * 📱 Responsive modern UI
 * ⚡ Instant message updates
 * 🟢 Online status
-
+* 📱 Mobile Responsive Layout
 ---
 
 ## 🛠️ Tech Stack
