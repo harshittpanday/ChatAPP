@@ -25,6 +25,7 @@ https://cha1app.netlify.app/
 * ⚡ Instant message updates
 * 🟢 Online status
 * 📱 Mobile Responsive Layout
+* 📷 Profile picture upload / media upload
 ---
 
 ## 🛠️ Tech Stack
@@ -98,7 +99,7 @@ Recommended:
 * Typing indicator
 * Group chats
 * Message reactions
-* Profile picture upload 
+
 
 
 ---
