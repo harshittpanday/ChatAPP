@@ -334,3 +334,46 @@ img {
     flex-direction:column;
     gap:2px;
 }
+@media (max-width:768px){
+
+    .sidebar{
+        width:100%;
+    }
+
+    .chat-area{
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:#0b0f14;
+        z-index:100;
+        display:none;
+    }
+
+}
+.badge{
+    background:#10b981;
+    color:black;
+    min-width:20px;
+    height:20px;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:bold;
+}
+
+#typingText {
+    font-size: 12px;
+    color: #10b981;
+    margin-top: 2px;
+    min-height: 14px;
+}
+.chat-box .msg-footer {
+    font-size: 10px;
+    opacity: 0.7;
+    text-align: right;
+    margin-top: 4px;
+}

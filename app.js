@@ -48,7 +48,22 @@ document.getElementById("loginBtn").onclick = async () => {
     await auth.signInWithEmailAndPassword(email, password);
 };
 
+// ---------------- Online/Offline ----------------
+auth.onAuthStateChanged(async user => {
+    if (!user) return;
 
+    const userRef = db.ref("users/" + user.uid);
+
+    await userRef.update({
+        online: true
+    });
+
+    userRef.onDisconnect().update({
+        online: false
+    });
+
+    loadHome(user.uid);
+});
 // ---------------- AUTH STATE ----------------
 
 auth.onAuthStateChanged(user => {
@@ -97,9 +112,10 @@ async function loadHome(uid) {
         </div>
 
         <div class="chat-area">
-            <h2>Select a chat</h2>
+          <div class="empty-chat">
+        <h2>Select a chat</h2>
         </div>
-
+        </div>
     </div>
     `;
 
@@ -181,12 +197,16 @@ async function openChat(chatId, otherUid) {
         <div class="chat-container">
 
            <div class="chat-header">
-             <h2>${u.displayName}</h2>
 
-              <p id="statusText">
-             ${u.online ? "🟢 Online" : "⚫ Offline"}
-               </p> 
-             </div>
+               <button onclick="goBack()">←</button>
+
+                <div>
+                 <h2>${u.displayName}</h2>
+                  <p>@${u.username}</p>
+                <small id="statusText">⚫ Offline</small>
+                 </div>
+
+                   </div>
 
             <div id="messages" class="chat-box"></div>
 
@@ -204,7 +224,12 @@ async function openChat(chatId, otherUid) {
         </div>
     `;
 
-    loadMessages(chatId);
+   loadMessages(chatId);
+
+  await db.ref(
+  "chats/" + chatId + "/unread/" + auth.currentUser.uid
+    ).set(0);
+
 
     setTimeout(() => {
         document.getElementById("msgInput")?.focus();
@@ -226,6 +251,81 @@ async function openChat(chatId, otherUid) {
         : "⚫ Offline";
 });
 
+
+
+if(window.innerWidth < 768){
+
+document.querySelector(".sidebar").style.display = "none";
+
+document.querySelector(".chat-area").style.display = "flex";
+
+
+}
+
+const input = document.getElementById("msgInput");
+
+let typingTimeout;
+
+input.addEventListener("input", async () => {
+    const me = auth.currentUser.uid;
+
+    await db.ref(`chats/${chatId}/typing/${me}`).set(true);
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+        db.ref(`chats/${chatId}/typing/${me}`).set(false);
+    }, 1500);
+});
+
+const typingRef = db.ref(`chats/${chatId}/typing`);
+
+typingRef.on("value", snap => {
+    const data = snap.val() || {};
+
+    const otherIsTyping = Object.keys(data).some(uid =>
+        uid !== auth.currentUser.uid && data[uid]
+    );
+
+    const status = document.getElementById("statusText");
+
+    if (!status) return;
+
+    if (otherIsTyping) {
+        status.textContent = "⌨️ typing...";
+    } else {
+        status.textContent = u.online ? "🟢 Online" : "⚫ Offline";
+    }
+});
+db.ref(`chats/${chatId}/typing`).off();
+
+await db.ref("chats/" + chatId + "/messages").push({
+    sender: me,
+    text,
+    time: Date.now(),
+    seenBy: {
+        [me]: true
+    }
+});
+
+const messagesRef = db.ref(`chats/${chatId}/messages`);
+
+messagesRef.once("value", snap => {
+    const updates = {};
+
+    snap.forEach(child => {
+        const msg = child.val();
+
+        if (msg.sender !== auth.currentUser.uid) {
+            updates[child.key + "/seenBy/" + auth.currentUser.uid] = true;
+        }
+    });
+
+    messagesRef.update(updates);
+});
+
+
+
 }
 
 
@@ -239,6 +339,13 @@ function loadMessages(chatId) {
         .on("child_added", snap => {
 
             const m = snap.val();
+            const time = new Date(m.time);
+
+           const formattedTime =
+           time.toLocaleTimeString([], {
+           hour: "2-digit",
+           minute: "2-digit"
+    });
             const me = auth.currentUser.uid;
             const isMe = m.sender === me;
 
@@ -247,6 +354,7 @@ function loadMessages(chatId) {
             el.style.textAlign = isMe ? "right" : "left";
          
             el.innerHTML = `
+            
                 <div style="
              display:inline-block;
              padding:10px 14px;
@@ -259,6 +367,9 @@ function loadMessages(chatId) {
              ">
                     ${m.text}
                 </div>
+
+              
+
             `;
 
             div.appendChild(el);
@@ -271,99 +382,165 @@ function loadMessages(chatId) {
 
 window.sendMessage = async function(chatId) {
 
-    const input = document.getElementById("msgInput");
-    const text = input.value.trim();
 
-    if (!text) return;
+const input = document.getElementById("msgInput");
+const text = input.value.trim();
 
-    await db.ref("chats/" + chatId + "/messages").push({
-        sender: auth.currentUser.uid,
-        text,
-        time: Date.now()
-    });
+if (!text) return;
 
-    input.value = "";
+const me = auth.currentUser.uid;
+
+const chatSnap = await db.ref("chats/" + chatId).once("value");
+const chat = chatSnap.val();
+
+const otherUid = Object.keys(chat.participants)
+    .find(uid => uid !== me);
+
+await db.ref("chats/" + chatId + "/messages").push({
+    sender: me,
+    text,
+    time: Date.now()
+});
+
+const unreadRef =
+    db.ref("chats/" + chatId + "/unread/" + otherUid);
+
+const unreadSnap =
+    await unreadRef.once("value");
+
+const currentUnread =
+    unreadSnap.val() || 0;
+
+await unreadRef.set(currentUnread + 1);
+
+input.value = "";
+
+
 };
-
 
 // ---------------- CHAT LIST ----------------
 
 async function loadChatList(uid) {
 
-    const div = document.getElementById("chatList");
 
-    db.ref("chats").on("value", async (snap) => {
+const div = document.getElementById("chatList");
 
-        const chats = snap.val() || {};
-        let html = "";
+db.ref("chats").on("value", async (snap) => {
 
-        for (const id in chats) {
+    const chats = snap.val() || {};
+    let html = "";
 
-            const c = chats[id];
+    for (const id in chats) {
 
-            // Skip chats user isn't part of
-            if (!c.participants || !c.participants[uid]) continue;
+        const c = chats[id];
 
-            const other = Object.keys(c.participants).find(
-                x => x !== uid
-            );
+        if (!c.participants || !c.participants[uid])
+            continue;
 
-            if (!other) continue;
+        const other =
+            Object.keys(c.participants)
+            .find(x => x !== uid);
 
-            try {
+        if (!other)
+            continue;
 
-                const userSnap = await db.ref("users/" + other).once("value");
-                const u = userSnap.val();
+        try {
 
-                if (!u) continue;
+            const userSnap =
+                await db.ref("users/" + other).once("value");
 
-                let lastMessage = "No messages yet";
+            const u = userSnap.val();
 
-                if (c.messages) {
+            if (!u)
+                continue;
 
-                    const msgs = Object.values(c.messages);
+            let lastMessage =
+                "No messages yet";
 
-                    if (msgs.length > 0) {
-                        const latest = msgs[msgs.length - 1];
+            if (c.messages) {
 
-                        if (latest && latest.text) {
-                            lastMessage = latest.text;
-                        }
+                const msgs =
+                    Object.values(c.messages);
+
+                if (msgs.length > 0) {
+
+                    const latest =
+                        msgs[msgs.length - 1];
+
+                    if (latest?.text) {
+                        lastMessage =
+                            latest.text;
                     }
+
                 }
 
-                html += `
-                <div class="user-result"
-                     onclick="startChat('${other}')">
+            }
 
-                    <strong>${u.displayName}</strong>
+            const unread =
+                c.unread?.[uid] || 0;
 
-                    <p style="
-                        color:#9ca3af;
-                        white-space:nowrap;
-                        overflow:hidden;
-                        text-overflow:ellipsis;
+            html += `
+            <div class="user-result"
+                 onclick="startChat('${other}')">
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                ">
+
+                    <strong>
+                        ${u.displayName}
+                    </strong>
+
+                    ${unread > 0 ? `
+                    <span style="
+                        background:#10b981;
+                        color:black;
+                        min-width:20px;
+                        height:20px;
+                        border-radius:999px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:12px;
+                        font-weight:bold;
                     ">
-                        ${lastMessage}
-                    </p>
+                        ${unread}
+                    </span>
+                    ` : ""}
 
                 </div>
-                `;
 
-            } catch (err) {
+                <p style="
+                    color:#9ca3af;
+                    white-space:nowrap;
+                    overflow:hidden;
+                    text-overflow:ellipsis;
+                ">
+                    ${lastMessage}
+                </p>
 
-                console.error(
-                    "Chat list error:",
-                    err
-                );
+            </div>
+            `;
 
-            }
+        } catch (err) {
+
+            console.error(
+                "Chat list error:",
+                err
+            );
+
         }
 
-        div.innerHTML = html;
-    });
-}
+    }
 
+    div.innerHTML = html;
+
+});
+
+
+}
 
 // ---------------- PROFILE PFP ----------------
 
@@ -383,6 +560,20 @@ window.uploadPfp = async function() {
     });
 
     alert("Updated");
+};
+
+// ----------------- GOBACK -------------------
+
+window.goBack = function() {
+
+if(window.innerWidth < 768){
+
+    document.querySelector(".chat-area").style.display = "none";
+
+    document.querySelector(".sidebar").style.display = "block";
+
+}
+
 };
 
 
@@ -455,15 +646,18 @@ window.saveProfile = async function() {
 
     alert("Profile saved!");
 };
-// ---------------- Online/Offline ----------------
-window.addEventListener("beforeunload", () => {
 
-    const user = auth.currentUser;
+let currentChat = null;
+window.addEventListener("popstate", () => {
 
-    if (!user) return;
 
-    db.ref("users/" + user.uid).update({
-        online: false
-    });
+if(window.innerWidth < 768){
+
+    document.querySelector(".chat-area").style.display = "none";
+
+    document.querySelector(".sidebar").style.display = "block";
+
+}
+
 
 });
