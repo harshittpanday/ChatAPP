@@ -34,7 +34,7 @@ document.getElementById("signupBtn").onclick = async () => {
         pfpURL: ""
     });
 
-    alert("Account created!");
+    showToast("Account created!");
 };
 
 
@@ -70,61 +70,6 @@ auth.onAuthStateChanged(user => {
     if (user) loadHome(user.uid);
 });
 
-
-// ---------------- HOME ----------------
-
-async function loadHome(uid) {
-
-    const snap = await db.ref("users/" + uid).once("value");
-    const me = snap.val();
-
-    document.body.innerHTML = `
-    <div class="app">
-
-        <div class="sidebar">
-
-            <h2>💬 ChatAPP</h2>
-
-            <div class="profile">
-                <div class="avatar">
-                    ${
-                        me.pfpURL
-                        ? `<img src="${me.pfpURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
-                        : me.displayName.charAt(0).toUpperCase()
-                    }
-                </div>
-
-                <div>
-                    <h3>${me.displayName}</h3>
-                    <p>@${me.username}</p>
-                </div>
-            </div>
-
-            <button onclick="openProfile('${uid}')">Profile</button>
-            <button onclick="logout()">Logout</button>
-
-            <h3>Chats</h3>
-            <div id="chatList"></div>
-
-            <input id="searchInput" placeholder="Search users...">
-            <div id="searchResults"></div>
-
-        </div>
-
-        <div class="chat-area">
-          <div class="empty-chat">
-        <h2>Select a chat</h2>
-        </div>
-        </div>
-    </div>
-    `;
-
-    document.getElementById("searchInput").oninput = searchUsers;
-
-    loadChatList(uid);
-}
-
-
 // ---------------- SEARCH ----------------
 
 async function searchUsers(e) {
@@ -158,6 +103,66 @@ async function searchUsers(e) {
 
     div.innerHTML = html;
 }
+
+
+// ---------------- HOME ----------------
+
+async function loadHome(uid) {
+
+    const snap = await db.ref("users/" + uid).once("value");
+    const me = snap.val();
+
+    document.body.innerHTML = `
+    <div class="app">
+
+        <div class="sidebar">
+
+            <h2>💬 ChatAPP</h2>
+
+            <div class="profile">
+                <div class="avatar">
+                    ${
+                        me.pfpURL
+                        ? `<img src="${me.pfpURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
+                        : me.displayName.charAt(0).toUpperCase()
+                    }
+                </div>
+
+                <div>
+                    <h3>${me.displayName}</h3>
+                    <p>@${me.username}</p>
+                </div>
+            </div>
+
+            <button onclick="openProfile('${uid}')">Profile</button>
+            <button onclick="logout()">Logout</button>
+
+           <h3>Chats</h3>
+
+<input
+    id="searchInput"
+    placeholder="🔍 Search users..."
+>
+
+<div id="searchResults"></div>
+
+<div id="chatList"></div>
+
+        </div>
+
+        <div class="chat-area">
+          <div class="empty-chat">
+        <h2>Select a chat</h2>
+        </div>
+        </div>
+    </div>
+    `;
+
+    document.getElementById("searchInput").oninput = searchUsers;
+
+    loadChatList(uid);
+}
+
 
 
 // ---------------- CHAT START ----------------
@@ -643,7 +648,7 @@ window.uploadPfp = async function () {
     const file = document.getElementById("pfpInput").files[0];
 
     if (!file) {
-        alert("Select an image first");
+        showToast("Select an image first");
         return;
     }
 
@@ -666,7 +671,7 @@ window.uploadPfp = async function () {
         pfpURL: data.secure_url
     });
 
-    alert("Profile picture updated!");
+    showToast("Profile picture updated!");
 };
 
 // ----------------- GOBACK -------------------
@@ -761,7 +766,7 @@ window.saveProfile = async function() {
         bio: document.getElementById("bioInput").value
     });
 
-    alert("Profile saved!");
+    showToast("Profile saved!");
 };
 
 let currentChat = null;
@@ -778,3 +783,35 @@ if(window.innerWidth < 768){
 
 
 });
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerText = msg;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+window.showToast = function(msg, type = "info") {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.innerText = msg;
+
+    document.body.appendChild(toast);
+
+    // small delay so animation triggers properly
+    setTimeout(() => {
+        toast.classList.add("show");
+    }, 10);
+
+    // fade out before removing
+    setTimeout(() => {
+        toast.classList.remove("show");
+
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 2500);
+};

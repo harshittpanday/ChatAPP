@@ -110,7 +110,8 @@ button:hover{
     border-right:1px solid rgba(255,255,255,.08);
     padding:20px;
     overflow-y:auto;
-}
+    
+} 
 
 .sidebar h2{
     margin-bottom:20px;
@@ -376,4 +377,74 @@ img {
     opacity: 0.7;
     text-align: right;
     margin-top: 4px;
+}
+.toast{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+
+    background:#111827;
+    color:white;
+
+    padding:14px 18px;
+
+    border-radius:12px;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    opacity:0;
+    transform:translateY(20px);
+
+    transition:.3s;
+
+    z-index:9999;
+}
+
+.toast.show{
+    opacity:1;
+    transform:translateY(0);
+}
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #111827;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* optional types */
+.toast-success { background: #10b981; }
+.toast-error { background: #ef4444; }
+.toast-info { background: #111827; }
+
+:root {
+    --bg: #0f172a;
+    --text: #ffffff;
+    --card: #1f2937;
+    --accent: #10b981;
+}
+
+body.light {
+    --bg: #f3f4f6;
+    --text: #111827;
+    --card: #ffffff;
+    --accent: #10b981;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
 }

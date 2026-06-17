@@ -20,7 +20,7 @@ document.getElementById("signupBtn").onclick = async () => {
     const displayName = signupDisplayName.value.trim();
 
     if (!email || !password || !username || !displayName) {
-        alert("Fill all fields");
+        showToast("Fill all fields");
         return;
     }
 
@@ -29,7 +29,7 @@ document.getElementById("signupBtn").onclick = async () => {
         const check = await db.ref("usernames/" + username).once("value");
 
         if (check.exists()) {
-            alert("Username taken");
+            showToast("Username taken");
             return;
         }
 
@@ -46,10 +46,10 @@ document.getElementById("signupBtn").onclick = async () => {
 
         await db.ref("usernames/" + username).set(uid);
 
-        alert("Account created!");
+        showToast("Account created!");
 
     } catch (err) {
-        alert(err.message);
+        showToast(err.message);
     }
 };
 
@@ -62,7 +62,7 @@ document.getElementById("loginBtn").onclick = async () => {
     try {
         await auth.signInWithEmailAndPassword(email, password);
     } catch (err) {
-        alert(err.message);
+        showToast(err.message);
     }
 };
 
@@ -84,3 +84,4 @@ function logout() {
     auth.signOut();
     location.reload();
 }
+
