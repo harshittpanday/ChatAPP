@@ -281,9 +281,12 @@ async function openChat(chatId, otherUid) {
         placeholder="Type a message..."
     >
 
-    <button onclick="sendMessage('${chatId}')">
-        Send
-    </button>
+    <button
+    id="sendBtn"
+    onclick="sendMessage('${chatId}')"
+>
+    Send
+</button>
 
 </div>
 
@@ -731,7 +734,13 @@ document.addEventListener("keydown", (e) => {
         input &&
         document.activeElement === input
     ) {
-        document.querySelector(".chat-input button")?.click();
+
+        e.preventDefault();
+
+        const sendBtn =
+            document.getElementById("sendBtn");
+
+        sendBtn?.click();
     }
 });
 // ---------------- PROFILE ----------------
