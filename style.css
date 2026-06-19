@@ -106,12 +106,14 @@ button:hover{
 
 .sidebar{
     width:340px;
+    min-width:340px;
     background:#111827;
     border-right:1px solid rgba(255,255,255,.08);
     padding:20px;
     overflow-y:auto;
     
 } 
+
 
 .sidebar h2{
     margin-bottom:20px;

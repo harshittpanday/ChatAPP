@@ -64,46 +64,72 @@ auth.onAuthStateChanged(async user => {
 
     loadHome(user.uid);
 });
-// ---------------- AUTH STATE ----------------
-
-auth.onAuthStateChanged(user => {
-    if (user) loadHome(user.uid);
-});
-
 // ---------------- SEARCH ----------------
 
 async function searchUsers(e) {
 
-    const q = e.target.value.toLowerCase();
-    const div = document.getElementById("searchResults");
+    try {
 
-    if (!q) return div.innerHTML = "";
+        const q = e.target.value.trim().toLowerCase();
 
-    const snap = await db.ref("users").once("value");
-    const users = snap.val() || {};
+        const div = document.getElementById("searchResults");
 
-    let html = "";
-
-    for (const id in users) {
-
-        const u = users[id];
-        if (!u.username) continue;
-
-        if (u.username.includes(q) || u.displayName.toLowerCase().includes(q)) {
-
-            html += `
-            <div class="user-result">
-                <strong>${u.displayName}</strong>
-                <p>@${u.username}</p>
-                <button onclick="startChat('${id}')">Message</button>
-            </div>
-            `;
+        if (!q) {
+            div.innerHTML = "";
+            return;
         }
+
+        const snap = await db.ref("users").once("value");
+
+        const users = snap.val() || {};
+
+        console.log("Users found:", users);
+
+        let html = "";
+
+        for (const id in users) {
+
+            const u = users[id];
+
+            if (!u) continue;
+
+            const username =
+                (u.username || "").toLowerCase();
+
+            const displayName =
+                (u.displayName || "").toLowerCase();
+
+            if (
+                username.includes(q) ||
+                displayName.includes(q)
+            ) {
+
+                html += `
+                <div class="user-result">
+
+                    <strong>${u.displayName}</strong>
+
+                    <p>@${u.username}</p>
+
+                    <button onclick="startChat('${id}')">
+                        Message
+                    </button>
+
+                </div>
+                `;
+            }
+        }
+
+        div.innerHTML = html;
+
+        console.log("HTML:", html);
+
+    } catch (err) {
+
+        console.error("Search Error:", err);
+
     }
-
-    div.innerHTML = html;
 }
-
 
 // ---------------- HOME ----------------
 
@@ -125,7 +151,9 @@ async function loadHome(uid) {
                         me.pfpURL
                         ? `<img src="${me.pfpURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
                         : me.displayName.charAt(0).toUpperCase()
+                        
                     }
+                    
                 </div>
 
                 <div>
@@ -491,6 +519,7 @@ window.sendImage = async function(chatId) {
     });
 
     document.getElementById("imageInput").value = "";
+    
 };
 
 
